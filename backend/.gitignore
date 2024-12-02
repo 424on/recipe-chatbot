@@ -1,0 +1,3 @@
+.env
+backend/data/recipes.csv
+backend/data/recipes_utf8.csv
