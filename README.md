@@ -1,5 +1,3 @@
-아래는 README.md 파일 형식으로 작성된 내용을 보여드립니다:
-
 # 🍳 Recipe Chatbot
 
 **Recipe Chatbot**은 사용자가 입력한 재료와 필터 조건을 기반으로 개인화된 레시피를 추천하는 웹 애플리케이션입니다. RAG(Retrieval-Augmented Generation) 기술과 OpenAI API를 활용하여 방대한 레시피 데이터에서 적합한 레시피를 검색하고, 사용자 맞춤형 답변을 제공합니다.
@@ -109,12 +107,4 @@ npm start
 	•	외부 데이터 소스(블로그, 요리 사이트) 통합을 통한 검색 결과 확장.
 	•	사용자 피드백 기반으로 추천 알고리즘 개선.
 
-📧 문의 및 기여
-
-궁금한 점이나 제안 사항이 있다면, 이슈를 생성하거나 아래 이메일로 연락주세요!
-	•	Email: your_email@example.com
-	•	GitHub Issues: Link
-
 © 2024 Recipe Chatbot. All rights reserved.
-
-위 내용을 복사해서 `README.md` 파일에 저장하면 됩니다. 필요에 따라 본인의 프로젝트와 맞는 부분은 수정하거나 추가하세요.
