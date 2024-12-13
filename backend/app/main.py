@@ -8,12 +8,12 @@ from langchain_openai.embeddings import OpenAIEmbeddings
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 
-# 환경 변수 로드
+
 load_dotenv()
 
 app = FastAPI()
 
-# CORS 설정
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -30,12 +30,20 @@ vectorstore = FAISS.load_local(
     allow_dangerous_deserialization=True
 )
 
-# GPT 모델 초기화
+
 gpt_model = ChatOpenAI(
     openai_api_key=os.getenv("OPENAI_API_KEY"),
-    model="gpt-3.5-turbo",
+    model="gpt-4o",
     temperature=0.7
 )
+
+# 식사 종류 매핑
+MEAL_TYPE_MAPPING = {
+    "식사": ["밥/죽/떡", "국/탕", "찌개", "양식"],
+    "메인 요리": ["메인반찬", "면/만두", "퓨전"],
+    "사이드": ["밑반찬", "양념/소스/잼", "샐러드", "김치/젓갈/장류"],
+    "디저트": ["디저트", "빵", "과자", "차/음료/술"],
+}
 
 class Query(BaseModel):
     query: str
@@ -50,27 +58,39 @@ async def chatbot(payload: Query):
         if not user_query:
             raise HTTPException(status_code=400, detail="Query cannot be empty")
 
+        # 필터 확인 로그 출력
+        print(f"Received Query: {user_query}")
+        print(f"Received Filters: {filters}")
+
         # Step 1: 벡터 스토어에서 유사 데이터 검색
         results = vectorstore.similarity_search(user_query, k=10)
         print(f"Retrieved documents: {results}")
 
-        # Step 2: 필터 적용 (필터 조건 일부 완화)
+        # Step 2: 필터 적용 (식사 종류, 난이도, 소요 시간)
         filtered_results = [
             res for res in results if all([
-                not filters.get("dishType") or filters["dishType"] in res.metadata.get("CKG_KND_ACTO_NM", ""),
+                # 식사 종류 필터 (매핑된 종류로 필터링)
+                not filters.get("mealType") or any(
+                    category in MEAL_TYPE_MAPPING.get(filters["mealType"], [])
+                    for category in res.metadata.get("CKG_KND_ACTO_NM", "").split("/")
+                ),
+                # 난이도 필터
                 not filters.get("difficulty") or filters["difficulty"] == res.metadata.get("CKG_DODF_NM", ""),
+                # 소요 시간 필터
                 not filters.get("time") or int(filters["time"]) >= int(res.metadata.get("CKG_TIME_NM", "0")),
             ])
         ]
 
-        print(f"Filtered Results: {filtered_results}")
+        # 필터 결과 로그 출력
+        print(f"Filtered Results Count: {len(filtered_results)}")
+        print(f"Filtered Results: {[res.metadata for res in filtered_results]}")
 
         # Step 3: 컨텍스트 생성
         context = "\n".join([res.page_content for res in filtered_results[:5]])
 
         # 필터를 만족하는 결과가 없는 경우 기본 메시지 추가
         if not filtered_results:
-            context += "\n기본적으로 계란과 관련된 요리를 추천합니다."
+            context += "\n필터에 맞는 레시피가 없어 기본적인 추천을 제공합니다."
 
         # Step 4: GPT 모델 호출
         prompt = f"""
@@ -85,6 +105,11 @@ async def chatbot(payload: Query):
         # gpt_response가 BaseMessage 객체일 경우, content 속성 추출
         answer_content = gpt_response.content if hasattr(gpt_response, 'content') else str(gpt_response)
 
-        return {"query": user_query, "answer": {"content": answer_content}}
+        # 응답에 필터 정보 포함
+        return {
+            "query": user_query,
+            "filters": filters,
+            "answer": {"content": answer_content},
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
