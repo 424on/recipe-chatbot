@@ -1,3 +1,20 @@
 backend/data/recipes.csv
 backend/data/recipes_utf8.csv
 
+# env / secrets
+.env
+.env.*
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
